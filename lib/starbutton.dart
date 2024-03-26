@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:excelerate/db.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 class StartButton extends StatefulWidget {
   const StartButton({super.key});
@@ -12,50 +14,106 @@ class StartButton extends StatefulWidget {
   _StartButtonState createState() => _StartButtonState();
 }
 
+enum AppState { stopped, started, starting }
+
 class _StartButtonState extends State<StartButton> {
   late StreamSubscription<UserAccelerometerEvent> accStream;
   late StreamSubscription<GyroscopeEvent> gyroStream;
   late StreamSubscription<Position> geoStream;
 
-  bool isListening = false;
+  AppState state = AppState.stopped;
+  List<String> fileList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    refreshFileList();
+  }
 
   void startListeningAccelerometer() async {
+    setState(() {
+      state = AppState.starting;
+    });
     await ensurePermissions();
+    final start = DateTime.now();
+    final db = await openDatabase('${start.millisecondsSinceEpoch}');
 
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    accStream = await recordStream(
-        userAccelerometerEventStream(
-            samplingPeriod: SensorInterval.normalInterval),
-        '$timestamp',
-        'acc.txt');
-    gyroStream =
-        await recordStream(gyroscopeEventStream(), '$timestamp', 'gyro.txt');
-    geoStream = await recordStream(
-        Geolocator.getPositionStream(), '$timestamp', 'geo.txt');
+    accStream = userAccelerometerEventStream()
+        .listen((event) => insertAccelerometerData(event, db));
+    gyroStream = gyroscopeEventStream()
+        .listen((event) => insertGyroscopeData(event, db));
+    geoStream = Geolocator.getPositionStream()
+        .skipWhile((_) =>
+            DateTime.now().difference(start) < const Duration(seconds: 10))
+        .listen((event) => insertGpsData(event, db));
+
+    await Future.delayed(const Duration(seconds: 10));
+    setState(() {
+      state = AppState.started;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(children: [
+      // Make it big
       TextButton(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(200, 200),
+          backgroundColor: state == AppState.started
+              ? Colors.redAccent
+              : state == AppState.stopped
+                  ? Colors.lightGreen
+                  : Colors.orangeAccent,
+        ),
         onPressed: () {
-          print("klik");
           setState(() {
-            if (!isListening) {
+            if (state == AppState.stopped) {
               startListeningAccelerometer();
-            } else {
+            } else if (state == AppState.started) {
               stopListening();
+              refreshFileList();
+              setState(() {
+                state = AppState.stopped;
+              });
             }
-            isListening = !isListening;
           });
         },
-        child: Text(isListening ? "Stop" : "Start"),
+        child: Text(
+            state == AppState.started
+                ? "Stop"
+                : state == AppState.stopped
+                    ? "Start"
+                    : "Starting",
+            style: const TextStyle(fontSize: 30)),
       ),
-      TextButton(
-          onPressed: () {
-            readData();
-          },
-          child: const Text("Read"))
+      const SizedBox(height: 20),
+
+      ListView(shrinkWrap: true, children: [
+        for (final file in fileList)
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/details', arguments: file);
+            },
+            child: Container(
+              color: Colors.grey[200],
+              margin: const EdgeInsets.all(10),
+              child: ListTile(
+                title: Text(file.split('/').last.split('.').first),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(Colors.red),
+                      foregroundColor: MaterialStateProperty.all(Colors.white)),
+                  onPressed: () {
+                    File(file).delete();
+                    refreshFileList();
+                  },
+                ),
+              ),
+            ),
+          )
+      ])
     ]);
   }
 
@@ -65,20 +123,17 @@ class _StartButtonState extends State<StartButton> {
     geoStream.cancel();
   }
 
-  Future<void> readData() async {
+  Future<void> refreshFileList() async {
     final docsDir = await getApplicationDocumentsDirectory();
     final dir = Directory(docsDir.path);
     final files = dir.listSync();
-    for (final file in files) {
-      final stat = file.statSync();
-      if (stat.type != FileSystemEntityType.directory) continue;
-      final files = Directory(file.path).listSync();
-      for (final file in files) {
-        final content = File(file.path).readAsStringSync();
-        print("File: ${file.path}");
-        print(content);
-      }
-    }
+
+    setState(() {
+      fileList = files
+          .where((file) => file.path.endsWith('.sqlite'))
+          .map((file) => file.path)
+          .toList();
+    });
   }
 }
 
@@ -95,16 +150,4 @@ Future<void> ensurePermissions() async {
       return Future.error('Location permissions are denied');
     }
   }
-}
-
-Future<StreamSubscription<T>> recordStream<T>(
-    Stream<T> stream, String folder, String filename) async {
-  final docsDir = await getApplicationDocumentsDirectory();
-  final dir = Directory('${docsDir.path}/$folder');
-  await dir.create();
-  final file = File('${dir.path}/$filename');
-  return stream.listen((event) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    file.writeAsStringSync('$now|$event\n', mode: FileMode.append);
-  });
 }
