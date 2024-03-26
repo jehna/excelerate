@@ -144,7 +144,7 @@ class GraphPainter extends CustomPainter {
     canvas.drawRect(
         Rect.fromLTWH(-size.width / 2, 0, 100, 100),
         Paint()
-          ..color = Colors.black
+          ..color = const Color.fromARGB(255, 25, 36, 56)
           ..style = PaintingStyle.fill);
 
     for (int i = 1; i < data.length; i++) {

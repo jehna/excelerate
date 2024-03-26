@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:excelerate/db.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
@@ -55,16 +56,18 @@ class _StartButtonState extends State<StartButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      // Make it big
+    return Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+      const SizedBox(height: 20),
+      Image.asset('assets/car.png', height: 120),
+      const SizedBox(height: 20),
       TextButton(
         style: TextButton.styleFrom(
-          minimumSize: const Size(200, 200),
+          minimumSize: const Size(150, 150),
           backgroundColor: state == AppState.started
-              ? Colors.redAccent
+              ? Colors.red[800]
               : state == AppState.stopped
-                  ? Colors.lightGreen
-                  : Colors.orangeAccent,
+                  ? Colors.green[800]
+                  : Colors.orange,
         ),
         onPressed: () {
           setState(() {
@@ -88,32 +91,39 @@ class _StartButtonState extends State<StartButton> {
             style: const TextStyle(fontSize: 30)),
       ),
       const SizedBox(height: 20),
-
-      ListView(shrinkWrap: true, children: [
-        for (final file in fileList)
-          GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/details', arguments: file);
-            },
-            child: Container(
-              color: Colors.grey[200],
-              margin: const EdgeInsets.all(10),
-              child: ListTile(
-                title: Text(file.split('/').last.split('.').first),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.red),
-                      foregroundColor: MaterialStateProperty.all(Colors.white)),
-                  onPressed: () {
-                    File(file).delete();
-                    refreshFileList();
-                  },
+      Expanded(
+        flex: 1,
+        child: SingleChildScrollView(
+          child: ListView(shrinkWrap: true, children: [
+            for (final file in fileList)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/details', arguments: file);
+                },
+                child: Container(
+                  color: Colors.grey[800],
+                  margin: const EdgeInsets.all(3),
+                  child: ListTile(
+                    title: Text(file.split('/').last.split('.').first),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.red),
+                          foregroundColor:
+                              MaterialStateProperty.all(Colors.white)),
+                      onPressed: () {
+                        File(file).delete();
+                        refreshFileList();
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          )
-      ])
+              )
+          ]),
+        ),
+      ),
+      const SizedBox(height: 50)
     ]);
   }
 

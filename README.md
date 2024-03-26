@@ -1,16 +1,48 @@
-# excelerate
+![Excelerate app icon](/logo.png)
 
-A new Flutter project.
+# Excelerate
+> An app that tracks accelerometer + gps and visualizes the data over time
 
-## Getting Started
+This is a quick app that I built for visualizing go kart performance
 
-This project is a starting point for a Flutter application.
+## Installing
 
-A few resources to get you started if this is your first Flutter project:
+Install the app to your phone by running:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```shell
+flutter run --release
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This builds and runs the app on your phone.
+
+## Developing
+
+This is a standard Flutter project, so you can run it in development mode using:
+
+```shell
+flutter run
+```
+
+You might want to use your IDE to run it to get hot reloads and other features.
+
+### Publishing
+
+This project has not been pulbished to App Store or Google Play yet.
+
+## Features
+
+This is a simple app that:
+* Saves all sensor and GPS data to a sqlite file
+* It makes effort to visualize that data in different ways
+* It's quick and free!
+
+## Contributing
+
+This is probably a small test project, no further development should be assumed.
+
+However if you'd like to contribute, please fork the repository and use a
+feature branch. Pull requests are warmly welcome.
+
+## Licensing
+
+The code in this project is licensed under MIT license.
