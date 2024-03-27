@@ -8,11 +8,11 @@ import 'package:path_provider/path_provider.dart';
 Future<Database> openDatabase(String filename) async {
   final dbPath = await getApplicationDocumentsDirectory();
   final db = sqlite3.open('${dbPath.path}/$filename.sqlite');
-  await migrate(db);
+  migrate(db);
   return db;
 }
 
-Future migrate(Database db) async {
+void migrate(Database db) {
   db.execute('''
     CREATE TABLE IF NOT EXISTS accelerometer (
       timestamp INTEGER NOT NULL,
@@ -40,6 +40,12 @@ Future migrate(Database db) async {
       speedAccuracy REAL NOT NULL
     )
   ''');
+
+  db.execute(
+      'CREATE INDEX IF NOT EXISTS accelerometer_timestamp ON accelerometer (timestamp)');
+  db.execute(
+      'CREATE INDEX IF NOT EXISTS gyroscope_timestamp ON gyroscope (timestamp)');
+  db.execute('CREATE INDEX IF NOT EXISTS gps_timestamp ON gps (timestamp)');
 }
 
 void insertAccelerometerData(UserAccelerometerEvent event, Database db) {

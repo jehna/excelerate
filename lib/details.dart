@@ -23,12 +23,14 @@ class _DeatilsPageState extends State<DetailsPage> {
   @override
   void initState() {
     super.initState();
-    db = sql.sqlite3.open(widget.dbPath, mode: sql.OpenMode.readOnly);
+    db = sql.sqlite3.open(widget.dbPath, mode: sql.OpenMode.readWrite);
+    migrate(db);
     minMax = minMaxData(db);
   }
 
   Iterable<GraphData> getGraphData() sync* {
-    final timestampRange = (minMax.timestamp.max - minMax.timestamp.min) * size;
+    final timestampRange =
+        (minMax.timestamp.max - minMax.timestamp.min) * (size);
     final timestampPadding =
         (minMax.timestamp.max - minMax.timestamp.min - timestampRange) *
             position;
@@ -42,11 +44,10 @@ class _DeatilsPageState extends State<DetailsPage> {
       final data = dataAtTime(db, timestamp);
       yield showGpsData
           ? GraphData(
-              normalize(
-                  data.accelerometerMagnitude, minMax.accelerometerMagnitude),
+              normalize(data.accelerometerZ, minMax.accelerometerZ),
               normalize(data.latitude, minMax.latitude),
               normalize(data.longitude, minMax.longitude),
-              normalize(data.accelerometerX, minMax.accelerometerX),
+              deviation(data.accelerometerX, minMax.accelerometerX),
             )
           : GraphData(
               normalize(
@@ -81,6 +82,7 @@ class _DeatilsPageState extends State<DetailsPage> {
             flex: 1,
             child: Slider(
               value: position,
+              min: 0.000000001,
               onChanged: (value) {
                 setState(() {
                   position = value;
@@ -151,9 +153,11 @@ class GraphPainter extends CustomPainter {
       final from = data[i - 1];
       final to = data[i];
       final percentDone = i / data.length;
-      paint.color =
-          HSVColor.fromAHSV(1, 100 - to.color * 100, 1, percentDone).toColor();
-      paint.strokeWidth = 2 + to.size * 30;
+      paint.color = HSVColor.lerp(const HSVColor.fromAHSV(1, 0, 1, 1),
+              const HSVColor.fromAHSV(1, 255, 1, 1), to.color)!
+          .toColor()
+          .withAlpha((percentDone * 255).toInt());
+      paint.strokeWidth = 5 + to.size * 30;
       canvas.drawLine(Offset(from.x * size.width, from.y * size.height),
           Offset(to.x * size.width, to.y * size.height), paint);
     }
@@ -165,4 +169,8 @@ class GraphPainter extends CustomPainter {
 
 double normalize(double value, Range range) {
   return (value - range.min) / (range.max - range.min);
+}
+
+double deviation(double value, Range range) {
+  return (1 - 2 * (value - range.min) / (range.max - range.min)).abs();
 }
