@@ -6,7 +6,8 @@ import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:sqlite3/sqlite3.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:sqlite3/sqlite3.dart' as sql;
 
 class StartButton extends StatefulWidget {
   const StartButton({super.key});
@@ -104,20 +105,29 @@ class _StartButtonState extends State<StartButton> {
                   color: Colors.grey[800],
                   margin: const EdgeInsets.all(3),
                   child: ListTile(
-                    title: Text(file.split('/').last.split('.').first),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all(Colors.red),
-                          foregroundColor:
-                              MaterialStateProperty.all(Colors.white)),
-                      onPressed: () {
-                        File(file).delete();
-                        refreshFileList();
-                      },
-                    ),
-                  ),
+                      title: Text(file.split('/').last.split('.').first),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                              onPressed: () async {
+                                await Share.shareXFiles([XFile(file)]);
+                              },
+                              icon: const Icon(Icons.download)),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            style: ButtonStyle(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.red),
+                                foregroundColor:
+                                    MaterialStateProperty.all(Colors.white)),
+                            onPressed: () {
+                              File(file).delete();
+                              refreshFileList();
+                            },
+                          ),
+                        ],
+                      )),
                 ),
               )
           ]),
