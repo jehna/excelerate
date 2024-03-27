@@ -3,7 +3,8 @@
 # Excelerate
 > An app that tracks accelerometer + gps and visualizes the data over time
 
-This is a quick app that I built for visualizing go kart performance
+This is a quick app that I built for visualizing outdoors go kart performance
+(indoor visualizations are worse as the GPS signal is not good enough).
 
 ## Installing
 
